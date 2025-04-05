@@ -1,27 +1,56 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircleCheck } from '@fortawesome/free-solid-svg-icons'
-import { faTrashCan } from '@fortawesome/free-solid-svg-icons'
+import { faCircleCheck, faTrashCan } from '@fortawesome/free-solid-svg-icons'
 import React from 'react'
+import type { Task } from '../types/task'
 
-interface Task {
-  id: number;
-  text: string;
-  completed: boolean;
-}
-
-function TodoList({taskList, setTaskList}: {
+export default function TodoList({taskList, setTaskList}: {
   taskList: Task[];
   setTaskList: React.Dispatch<React.SetStateAction<Task[]>>;
 }) {
+    const handleCompleted = async (id: number) => {
+        try {
+            const task = taskList.find(t => t.id === id);
+            const response = await fetch('/api/tasks', {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ id, completed: !task?.completed })
+            });
 
-    const handleCompleted = (id: number) => {
-        setTaskList(taskList.map((task) => 
-            task.id === id ? { ...task, completed: !task.completed } : task
-        ));
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const updatedTask = await response.json();
+            setTaskList(taskList.map((task) => 
+                task.id === id ? updatedTask : task
+            ));
+        } catch (error) {
+            console.error('タスクの更新に失敗:', error);
+        }
     }
 
-    const handleDelete = (id: number) => {
-        setTaskList(taskList.filter((task) => task.id !== id));
+    const handleDelete = async (id: number) => {
+        try {
+            const response = await fetch('/api/tasks', {
+                method: 'DELETE',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            setTaskList(taskList.filter((task) => task.id !== id));
+        } catch (error) {
+            console.error('タスクの削除に失敗:', error);
+        }
     }
 
   return (
@@ -57,5 +86,3 @@ function TodoList({taskList, setTaskList}: {
     </div>
   )
 }
-
-export default TodoList

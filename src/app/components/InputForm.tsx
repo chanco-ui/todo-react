@@ -3,12 +3,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCirclePlus } from '@fortawesome/free-solid-svg-icons'
 import React, { useState } from 'react'
-
-interface Task {
-  id: number;
-  text: string;
-  completed: boolean;
-}
+import type { Task } from '../types/task'
 
 export default function InputForm({ taskList, setTaskList }: {
   taskList: Task[];
@@ -16,17 +11,30 @@ export default function InputForm({ taskList, setTaskList }: {
 }) {
     const [inputText, setInputText] = useState("");
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setTaskList([
-            ...taskList,
-            {
-                id: Date.now(),
-                text: inputText,
-                completed: false
+        if (!inputText.trim()) return;
+
+        try {
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ text: inputText })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        ])
-        setInputText("")
+            
+            const newTask = await response.json();
+            setTaskList([newTask, ...taskList]);
+            setInputText("");
+        } catch (error) {
+            console.error('タスクの作成に失敗:', error);
+        }
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
